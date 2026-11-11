@@ -1,0 +1,1547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="tracker.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="description" content="Changing one's perspective, along with small seemingly insignificant changes compounded, can change everything." />
+  
+  <!-- Apple PWA Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Perspective" />
+  
+  <!-- Inline PWA Manifest Data URI (Self-Contained for Editor.do) -->
+  <link rel="manifest" href='data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22Perspective%22%2C%22short_name%22%3A%22Perspective%22%2C%22start_url%22%3A%22.%2F%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23000000%22%2C%22theme_color%22%3A%22%23000000%22%7D' />
+
+  <title>PERSPECTIVE</title>
+
+  <!-- Preload Sunglasses 3D Asset for Instant Render -->
+  <link rel="preload" as="image" href="https://lumitics.net/Sunglasses%203D.png" />
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ==========================================================================
+       PERSPECTIVE — IMMERSIVE SCROLL EXPERIENCE
+       - Screen 1: Pinned Hero (Calibrated Mobile Portrait Image + Legible Marquee)
+       - Rising Black Cloud Engulf
+       - Disappearance of Image & Marquee Copy
+       - Screen 2: "SHIFT YOUR VIEW / SEE FURTHER / LOOK AHEAD"
+         (Clean Fade in -> Hold -> Copy Fades Out -> Delayed Glasses Zoom & Fade)
+       - Screen 3: "BASED ON NATURE / MADE TO FEEL SIMPLE"
+         (3D Fold-Down Line-by-Line Reveal -> Reading Hold -> Fade Out)
+       - All Typography Unified on Inter
+       ========================================================================== */
+
+    :root {
+      --font-body: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-display: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-title: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --bg-black: #000000;
+      
+      /* The Scrolling Copy: Inter regular, crisp white with medium opacity */
+      --marquee-color: rgba(255, 255, 255, 0.44);
+      --marquee-subtle: rgba(255, 255, 255, 0.18);
+      
+      --sat: env(safe-area-inset-top, 0px);
+      --sab: env(safe-area-inset-bottom, 0px);
+      --sal: env(safe-area-inset-left, 0px);
+      --sar: env(safe-area-inset-right, 0px);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    html {
+      background-color: #000000 !important;
+      color: #ffffff;
+      font-family: var(--font-body);
+      overflow-x: hidden;
+    }
+
+    body {
+      background-color: #000000 !important;
+      color: #ffffff;
+      /* Extended scroll runway: drives cloud, copy fade, delayed zoom, and fold-down */
+      min-height: 650vh;
+      overflow-x: hidden;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* --------------------------------------------------------------------------
+       PINNED VIEWPORT STAGE
+       Fixed to viewport. The image and copy stay strictly pinned.
+       -------------------------------------------------------------------------- */
+    .fixed-viewport-stage {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #000000;
+      z-index: 1;
+    }
+
+    /* Stardust Canvas Dust */
+    .ambient-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.75;
+    }
+
+    /* Minimalist Header */
+    .minimal-header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: calc(56px + var(--sat));
+      padding: var(--sat) clamp(16px, 4vw, 48px) 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 50;
+      pointer-events: auto;
+    }
+
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 0.8rem;
+      font-weight: 500;
+      letter-spacing: 0.22em;
+    }
+
+    .brand-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: #ffffff;
+      box-shadow: 0 0 10px #ffffff;
+      animation: pulse-dot 3s ease-in-out infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { transform: scale(1); opacity: 0.9; }
+      50% { transform: scale(1.35); opacity: 0.4; }
+    }
+
+    .header-left-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    /* Floating Audio Mute Control Widget */
+    #audio-control-widget {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 6px 14px;
+      border-radius: 30px;
+      cursor: pointer;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      transition: all 0.25s ease;
+      user-select: none;
+    }
+
+    #audio-control-widget:hover {
+      border-color: rgba(168, 85, 247, 0.85);
+      background: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 0 16px rgba(168, 85, 247, 0.3);
+    }
+
+    .audio-icon {
+      width: 14px;
+      height: 14px;
+      fill: #a855f7;
+      color: #a855f7;
+      flex-shrink: 0;
+    }
+
+    .audio-label {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    /* Pinned Invitee Badge with Rotating Welcome Circle on the right side near top */
+    #invitee-badge-container {
+      position: fixed;
+      top: max(16px, env(safe-area-inset-top, 16px));
+      right: max(20px, env(safe-area-inset-right, 20px));
+      z-index: 1000;
+      width: 88px;
+      height: 88px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .invitee-name-center {
+      position: absolute;
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      color: #ffffff;
+      text-transform: uppercase;
+      text-align: center;
+      z-index: 2;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.95);
+      max-width: 62px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .rotating-circle-svg {
+      width: 100%;
+      height: 100%;
+      animation: rotateCircle 14s linear infinite;
+      overflow: visible;
+    }
+
+    @keyframes rotateCircle {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .rotating-circle-svg text {
+      font-family: var(--font-body);
+      font-weight: 600;
+      font-size: 11px;
+      letter-spacing: 4px;
+      fill: rgba(255, 255, 255, 0.85);
+      text-transform: uppercase;
+    }
+
+    @media screen and (max-width: 640px) {
+      .header-left-group {
+        gap: 10px;
+      }
+      #audio-control-widget {
+        padding: 5px 10px;
+      }
+      .audio-label {
+        font-size: 9px;
+        letter-spacing: 1.5px;
+      }
+      #invitee-badge-container {
+        width: 74px;
+        height: 74px;
+        top: max(12px, env(safe-area-inset-top, 12px));
+        right: max(12px, env(safe-area-inset-right, 12px));
+      }
+      .invitee-name-center {
+        font-size: 9.5px;
+        max-width: 50px;
+      }
+      .rotating-circle-svg text {
+        font-size: 11px;
+        letter-spacing: 3px;
+      }
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* --------------------------------------------------------------------------
+       LAYER 1: SPATIAL BACKDROP RINGS
+       -------------------------------------------------------------------------- */
+    .spatial-backdrop {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 1;
+      transition: opacity 0.5s ease;
+    }
+
+    .depth-ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.035);
+      pointer-events: none;
+    }
+
+    .ring-1 {
+      width: clamp(340px, 46vw, 680px);
+      height: clamp(340px, 46vw, 680px);
+      animation: rotate-slow 100s linear infinite;
+    }
+
+    .ring-2 {
+      width: clamp(540px, 70vw, 1080px);
+      height: clamp(540px, 70vw, 1080px);
+      border-style: dashed;
+      animation: rotate-reverse-slow 130s linear infinite;
+    }
+
+    @keyframes rotate-slow {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    @keyframes rotate-reverse-slow {
+      0% { transform: rotate(360deg); }
+      100% { transform: rotate(0deg); }
+    }
+
+    /* --------------------------------------------------------------------------
+       LAYER 2: MASSIVE SCROLLING COPY (BEHIND HUMAN FIGURE)
+       - Inter Regular/Medium
+       - Clear, high-contrast visibility behind silhouette
+       - Gentle / slow scroll loop (75s)
+       -------------------------------------------------------------------------- */
+    .typography-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: clamp(12px, 3vh, 32px);
+      z-index: 2; /* Sits directly behind Layer 3 */
+      pointer-events: none;
+      overflow: hidden;
+      transition: opacity 0.5s ease;
+    }
+
+    .marquee-track {
+      width: 100%;
+      overflow: hidden;
+      white-space: nowrap;
+      display: flex;
+      user-select: none;
+    }
+
+    .marquee-content {
+      display: flex;
+      flex-shrink: 0;
+      min-width: 100%;
+      will-change: transform;
+    }
+
+    /* Primary user copy: enlarged, clear, and visible */
+    .track-primary .marquee-phrase {
+      font-family: 'Inter', sans-serif;
+      font-weight: 500;
+      font-size: clamp(3.8rem, 10vw, 11.5rem);
+      line-height: 1.05;
+      letter-spacing: -0.025em;
+      color: var(--marquee-color);
+      text-shadow: 0 0 40px rgba(255, 255, 255, 0.08);
+      padding-right: 0.6em;
+      display: inline-block;
+      white-space: nowrap;
+    }
+
+    /* Subtle secondary ambient line */
+    .track-subtle .marquee-phrase {
+      font-family: 'Inter', sans-serif;
+      font-weight: 400;
+      font-size: clamp(0.85rem, 1.5vw, 1.35rem);
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--marquee-subtle);
+      padding-right: 1.5em;
+      display: inline-block;
+      white-space: nowrap;
+    }
+
+    /* Gentle Slow Drift (75 seconds) */
+    .marquee-forward-gentle {
+      animation: marquee-drift-left 75s linear infinite;
+    }
+
+    .marquee-reverse-gentle {
+      animation: marquee-drift-right 95s linear infinite;
+    }
+
+    @keyframes marquee-drift-left {
+      0% { transform: translate3d(0, 0, 0); }
+      100% { transform: translate3d(-50%, 0, 0); }
+    }
+
+    @keyframes marquee-drift-right {
+      0% { transform: translate3d(-50%, 0, 0); }
+      100% { transform: translate3d(0, 0, 0); }
+    }
+
+    /* --------------------------------------------------------------------------
+       LAYER 3: SUBJECT LAYER (FIT: COVER, BALANCED CALIBRATION)
+       -------------------------------------------------------------------------- */
+    .subject-layer {
+      position: relative;
+      z-index: 5; /* In front of Layer 2 typography */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      transition: opacity 0.5s ease;
+    }
+
+    .figure-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      -webkit-mask-image: radial-gradient(ellipse at 50% 55%, black 60%, transparent 96%);
+      mask-image: radial-gradient(ellipse at 50% 55%, black 60%, transparent 96%);
+    }
+
+    /* Standard Desktop / Tablet styling with object-fit: cover */
+    .figure-image-hero {
+      display: block;
+      height: clamp(500px, 88vh, 94vh);
+      max-height: 94vh;
+      max-width: 90vw;
+      width: auto;
+      object-fit: cover;
+      object-position: center center;
+      pointer-events: auto;
+      filter: drop-shadow(0 25px 60px rgba(0, 0, 0, 1));
+      animation: figure-gentle-breathe 8s ease-in-out infinite;
+    }
+
+    @keyframes figure-gentle-breathe {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.012); }
+    }
+
+    /* --------------------------------------------------------------------------
+       LAYER 4: SCROLL-CONTROLLED BLACK CLOUD ENGULFING SYSTEM
+       Comes up from the bottom as the user scrolls, swallowing the entire page
+       -------------------------------------------------------------------------- */
+    .cloud-engulf-system {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 135vh;
+      pointer-events: none;
+      z-index: 20; /* In front of hero figure and typography */
+      transform: translate3d(0, 105%, 0);
+      will-change: transform;
+    }
+
+    /* Atmospheric Fog Veil */
+    .cloud-veil {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 38%;
+      background: linear-gradient(to top, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.8) 50%, transparent 100%);
+      filter: blur(25px);
+    }
+
+    /* Billowing SVG Cloud Crests */
+    .cloud-crest-back {
+      position: absolute;
+      top: 15%;
+      left: -5%;
+      width: 110%;
+      height: 28%;
+      filter: blur(14px);
+      opacity: 0.92;
+      animation: cloud-churn-1 16s ease-in-out infinite alternate;
+    }
+
+    .cloud-crest-mid {
+      position: absolute;
+      top: 22%;
+      left: -8%;
+      width: 116%;
+      height: 32%;
+      filter: blur(6px);
+      opacity: 0.98;
+      animation: cloud-churn-2 20s ease-in-out infinite alternate;
+    }
+
+    .cloud-crest-front {
+      position: absolute;
+      top: 28%;
+      left: -3%;
+      width: 106%;
+      height: 34%;
+      filter: blur(1px);
+    }
+
+    .cloud-svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .cloud-abyss-body {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: 100%;
+      height: 60%;
+      background-color: #000000;
+      box-shadow: 0 -35px 70px 25px #000000;
+    }
+
+    @keyframes cloud-churn-1 {
+      0% { transform: scale(1) translateX(0); }
+      100% { transform: scale(1.04) translateX(2%); }
+    }
+    @keyframes cloud-churn-2 {
+      0% { transform: scale(1.02) translateX(0); }
+      100% { transform: scale(0.98) translateX(-2.5%); }
+    }
+
+    /* --------------------------------------------------------------------------
+       LAYER 5: STATEMENT SCREEN (SCREEN 2)
+       Monumental typography with line-by-line clean fade
+       Calibrated width: comfortably contained on all screens
+       Matches reference: thisisgazzar.com
+       -------------------------------------------------------------------------- */
+    .statement-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: clamp(12px, 2.4vh, 28px);
+      z-index: 25; /* Sits above the engulfed black void */
+      pointer-events: none;
+      overflow: hidden;
+      padding: 0 6vw;
+    }
+
+    .statement-line {
+      font-family: var(--font-body); /* Inter */
+      font-weight: 800;
+      font-size: clamp(1.5rem, 4.6vw, 4.0rem);
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      text-transform: uppercase;
+      color: #ffffff;
+      text-align: center;
+      white-space: nowrap;
+      opacity: 0;
+      transform: translate3d(0, 14px, 0);
+      will-change: opacity, transform;
+      text-shadow: 0 0 45px rgba(255, 255, 255, 0.16);
+      transition: opacity 0.08s linear, transform 0.08s linear;
+    }
+
+    /* --------------------------------------------------------------------------
+       LAYER 6: SUNGLASSES FLOATING HERO (OVER STATEMENT COPY)
+       Features:
+       - Exact Asset: https://lumitics.net/Sunglasses%203D.png
+       - Centered directly over "SEE FURTHER"
+       - 3D perspective wrapper with hardware acceleration
+       - Harmonic floating bob
+       - Interactive cursor & touch 3D tilt (rotateX, rotateY, rotateZ)
+       - Scroll-driven dramatic zoom-in
+       - Smooth fade-in & fade-out
+       -------------------------------------------------------------------------- */
+    .sunglasses-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      z-index: 28; /* Centered right over the Statement Screen (z-index 25) */
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      perspective: 1200px;
+      opacity: 0;
+      will-change: transform, opacity;
+    }
+
+    .sunglasses-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform-style: preserve-3d;
+      will-change: transform;
+    }
+
+    .sunglasses-image {
+      display: block;
+      width: clamp(260px, 36vw, 560px);
+      height: auto;
+      object-fit: contain;
+      filter: drop-shadow(0 25px 50px rgba(0, 0, 0, 0.95)) drop-shadow(0 0 35px rgba(168, 85, 247, 0.28));
+      user-select: none;
+      pointer-events: none;
+      will-change: transform;
+    }
+
+    @media screen and (max-width: 640px) and (orientation: portrait) {
+      .sunglasses-image {
+        width: clamp(220px, 66vw, 320px);
+      }
+    }
+
+    /* --------------------------------------------------------------------------
+       LAYER 7: NATURE STATEMENT SCREEN (SCREEN 3)
+       "BASED ON NATURE / MADE TO FEEL SIMPLE"
+       3D Fold-Down Line-by-Line Reveal & Scroll-Driven Fade Out
+       Matches Screen 2 typography & font size, 100% Inter
+       -------------------------------------------------------------------------- */
+    .nature-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: clamp(12px, 2.4vh, 28px);
+      z-index: 26;
+      pointer-events: none;
+      overflow: hidden;
+      padding: 0 6vw;
+      perspective: 1200px;
+    }
+
+    .nature-line-wrapper {
+      perspective: 1000px;
+      display: inline-block;
+      overflow: visible;
+      transform-style: preserve-3d;
+    }
+
+    .nature-line {
+      font-family: var(--font-body); /* Inter */
+      font-weight: 800;
+      font-size: clamp(1.5rem, 4.6vw, 4.0rem);
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      text-transform: uppercase;
+      color: #ffffff;
+      text-align: center;
+      white-space: nowrap;
+      opacity: 0;
+      transform-origin: 50% 0%;
+      will-change: opacity, transform;
+      text-shadow: 0 0 45px rgba(255, 255, 255, 0.16);
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
+
+    @media screen and (max-width: 640px) and (orientation: portrait) {
+      .nature-screen {
+        gap: 14px;
+        padding: 0 5vw;
+      }
+      .nature-line {
+        font-size: clamp(1.35rem, 6.0vw, 2.1rem);
+        line-height: 1.08;
+        letter-spacing: -0.015em;
+      }
+    }
+
+    /* --------------------------------------------------------------------------
+       SCROLL CUE AT BOTTOM
+       -------------------------------------------------------------------------- */
+    .scroll-cue-pill {
+      position: absolute;
+      bottom: calc(20px + var(--sab));
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      z-index: 30;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+    }
+
+    .scroll-label {
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.45);
+    }
+
+    .scroll-indicator-bar {
+      width: 38px;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .scroll-indicator-progress {
+      width: 0%;
+      height: 100%;
+      background: #ffffff;
+      transition: width 0.1s linear;
+    }
+
+    /* --------------------------------------------------------------------------
+       RESPONSIVE MATRIX
+       Specifically balances portrait mobile without affecting other screens
+       -------------------------------------------------------------------------- */
+
+    /* A. MOBILE PORTRAIT: Larger, prominent hero figure */
+    @media screen and (max-width: 640px) and (orientation: portrait) {
+      .figure-wrapper {
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding-top: 10px;
+      }
+
+      /* Prominently enlarged hero figure on mobile portrait */
+      .figure-image-hero {
+        height: 78vh !important;
+        height: 78dvh !important;
+        max-height: 80dvh !important;
+        width: auto !important;
+        max-width: 95vw !important;
+        object-fit: cover !important;
+        object-position: center 15% !important;
+        transform: none !important;
+        filter: drop-shadow(0 25px 60px rgba(0, 0, 0, 0.95));
+      }
+
+      .track-primary .marquee-phrase {
+        font-size: clamp(3.0rem, 13vw, 4.8rem);
+        color: rgba(255, 255, 255, 0.48);
+      }
+      .track-subtle {
+        display: none;
+      }
+
+      .statement-screen {
+        gap: 14px;
+        padding: 0 5vw;
+      }
+      .statement-line {
+        font-size: clamp(1.35rem, 6.0vw, 2.1rem);
+        line-height: 1.08;
+        letter-spacing: -0.015em;
+      }
+    }
+
+    /* B. MOBILE LANDSCAPE: Tailored framing */
+    @media screen and (max-height: 520px) and (orientation: landscape) {
+      .minimal-header { height: 44px; }
+      .figure-image-hero {
+        height: 94vh;
+        max-height: 94vh;
+        max-width: 60vw;
+        object-fit: cover;
+      }
+      .track-primary .marquee-phrase {
+        font-size: clamp(1.8rem, 9.5vh, 3.2rem);
+      }
+      .track-subtle { display: none; }
+      .scroll-cue-pill { bottom: 8px; }
+    }
+
+    /* C. TABLET PORTRAIT */
+    @media screen and (min-width: 601px) and (max-width: 1024px) and (orientation: portrait) {
+      .figure-image-hero {
+        height: clamp(540px, 84vh, 90vh);
+        max-width: 88vw;
+        object-fit: cover;
+      }
+      .track-primary .marquee-phrase {
+        font-size: clamp(3.8rem, 8.5vw, 6.5rem);
+      }
+    }
+
+    /* D. TABLET LANDSCAPE */
+    @media screen and (min-width: 768px) and (max-width: 1280px) and (orientation: landscape) and (max-height: 900px) {
+      .figure-image-hero {
+        height: clamp(500px, 88vh, 92vh);
+        max-width: 75vw;
+        object-fit: cover;
+      }
+      .track-primary .marquee-phrase {
+        font-size: clamp(3.5rem, 7vw, 7rem);
+      }
+    }
+
+    /* E. DESKTOP / ULTRAWIDE */
+    @media screen and (min-width: 1201px) {
+      .figure-image-hero {
+        height: clamp(540px, 88vh, 94vh);
+        max-width: 72vw;
+        object-fit: cover;
+      }
+      .track-primary .marquee-phrase {
+        font-size: clamp(4.5rem, 8vw, 10rem);
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- FIXED VIEWPORT STAGE: Everything remains pinned in viewport -->
+  <div class="fixed-viewport-stage" id="fixedStage">
+
+    <!-- Stardust Canvas -->
+    <canvas id="ambientCanvas" class="ambient-canvas" aria-hidden="true"></canvas>
+
+    <!-- Minimalist Header -->
+    <header class="minimal-header">
+      <div class="header-left-group">
+        <a href="#" class="brand-mark" aria-label="Perspective">
+          <span class="brand-dot"></span>
+          <span>PERSPECTIVE</span>
+        </a>
+
+        <!-- Floating Audio Mute Control Widget -->
+        <div id="audio-control-widget" class="audio-control-widget" title="Toggle Music" role="button" tabindex="0" aria-label="Toggle Soundtrack">
+          <svg class="audio-icon" id="audio-widget-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <line x1="23" y1="9" x2="17" y2="15"></line>
+            <line x1="17" y1="9" x2="23" y2="15"></line>
+          </svg>
+          <span class="audio-label" id="audio-widget-text">Music: Off</span>
+        </div>
+      </div>
+
+      <!-- Pinned Invitee Badge with Rotating Welcome Circle on the right side near top -->
+      <div id="invitee-badge-container">
+        <div class="invitee-name-center" id="invitee-display-name">Robert</div>
+        <svg class="rotating-circle-svg" viewBox="0 0 100 100">
+          <defs>
+            <path id="circlePathTop" d="M 15, 50 a 35,35 0 0,1 70,0" />
+            <path id="circlePathBottom" d="M 85, 50 a 35,35 0 0,1 -70,0" />
+          </defs>
+          <text>
+            <textPath href="#circlePathTop" xlink:href="#circlePathTop" startOffset="50%" text-anchor="middle">WELCOME</textPath>
+            <textPath href="#circlePathBottom" xlink:href="#circlePathBottom" startOffset="50%" text-anchor="middle">WELCOME</textPath>
+          </text>
+        </svg>
+      </div>
+    </header>
+
+    <!-- LAYER 1: Deep Spatial Backdrop Rings -->
+    <div class="spatial-backdrop" id="backdropLayer" aria-hidden="true">
+      <div class="depth-ring ring-1"></div>
+      <div class="depth-ring ring-2"></div>
+    </div>
+
+    <!-- LAYER 2: MASSIVE SCROLLING COPY (GENTLE, SLOWED-DOWN VELOCITY) -->
+    <div class="typography-layer" id="typographyLayer" aria-hidden="true">
+      
+      <div class="marquee-track track-subtle">
+        <div class="marquee-content marquee-reverse-gentle">
+          <span class="marquee-phrase">PERSPECTIVE &bull; COMPOUNDING &bull; PERSPECTIVE &bull; COMPOUNDING &bull; </span>
+          <span class="marquee-phrase">PERSPECTIVE &bull; COMPOUNDING &bull; PERSPECTIVE &bull; COMPOUNDING &bull; </span>
+          <span class="marquee-phrase">PERSPECTIVE &bull; COMPOUNDING &bull; PERSPECTIVE &bull; COMPOUNDING &bull; </span>
+          <span class="marquee-phrase">PERSPECTIVE &bull; COMPOUNDING &bull; PERSPECTIVE &bull; COMPOUNDING &bull; </span>
+        </div>
+      </div>
+
+      <!-- PRIMARY HERO MARQUEE: Exact User Copy scrolling right to left gently -->
+      <div class="marquee-track track-primary">
+        <div class="marquee-content marquee-forward-gentle">
+          <span class="marquee-phrase">Changing one's perspective, along with small seemingly insignificant changes compounded, can change everything.&nbsp;&nbsp;&mdash;&nbsp;&nbsp;</span>
+          <span class="marquee-phrase">Changing one's perspective, along with small seemingly insignificant changes compounded, can change everything.&nbsp;&nbsp;&mdash;&nbsp;&nbsp;</span>
+          <span class="marquee-phrase">Changing one's perspective, along with small seemingly insignificant changes compounded, can change everything.&nbsp;&nbsp;&mdash;&nbsp;&nbsp;</span>
+          <span class="marquee-phrase">Changing one's perspective, along with small seemingly insignificant changes compounded, can change everything.&nbsp;&nbsp;&mdash;&nbsp;&nbsp;</span>
+        </div>
+      </div>
+
+      <div class="marquee-track track-subtle">
+        <div class="marquee-content marquee-reverse-gentle">
+          <span class="marquee-phrase">CHANGING EVERYTHING &bull; INSIGNIFICANT CHANGES COMPOUNDED &bull; </span>
+          <span class="marquee-phrase">CHANGING EVERYTHING &bull; INSIGNIFICANT CHANGES COMPOUNDED &bull; </span>
+          <span class="marquee-phrase">CHANGING EVERYTHING &bull; INSIGNIFICANT CHANGES COMPOUNDED &bull; </span>
+          <span class="marquee-phrase">CHANGING EVERYTHING &bull; INSIGNIFICANT CHANGES COMPOUNDED &bull; </span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- LAYER 3: SUBJECT LAYER (FIT: COVER, PINNED) -->
+    <div class="subject-layer" id="subjectLayer">
+      <div class="figure-wrapper">
+        <img 
+          src="https://lumitics.net/Human%20figure.png" 
+          alt="Human Figure" 
+          class="figure-image-hero" 
+          id="figureHero"
+          loading="eager"
+        />
+      </div>
+    </div>
+
+    <!-- LAYER 4: SCROLL-CONTROLLED BLACK CLOUD ENGULFING SYSTEM -->
+    <div class="cloud-engulf-system" id="cloudSystem" aria-hidden="true">
+      <div class="cloud-veil"></div>
+
+      <!-- Billowing Mist & Smoke Tiers -->
+      <div class="cloud-crest-back" id="cloudBack">
+        <svg viewBox="0 0 1440 400" preserveAspectRatio="none" class="cloud-svg">
+          <path d="M0,220 C180,140 320,280 500,180 C680,80 820,240 1020,150 C1220,60 1340,200 1440,130 L1440,400 L0,400 Z" fill="#020204"/>
+        </svg>
+      </div>
+
+      <div class="cloud-crest-mid" id="cloudMid">
+        <svg viewBox="0 0 1440 420" preserveAspectRatio="none" class="cloud-svg">
+          <path d="M0,180 C140,80 300,220 480,110 C660,10 820,190 1000,100 C1180,10 1320,160 1440,80 L1440,420 L0,420 Z" fill="#000000"/>
+        </svg>
+      </div>
+
+      <div class="cloud-crest-front" id="cloudFront">
+        <svg viewBox="0 0 1440 440" preserveAspectRatio="none" class="cloud-svg">
+          <path d="M0,140 C160,30 360,180 560,70 C740,-30 920,140 1120,40 C1280,-40 1380,100 1440,30 L1440,440 L0,440 Z" fill="#000000"/>
+        </svg>
+        <div class="cloud-abyss-body"></div>
+      </div>
+    </div>
+
+    <!-- LAYER 5: STATEMENT SCREEN (SCREEN 2)
+         Monumental screen-filling typography with line-by-line clean fade
+         Matches reference: thisisgazzar.com -->
+    <div id="statementScreen" class="statement-screen" aria-hidden="true">
+      <div class="statement-line" id="stmtLine0">SHIFT YOUR VIEW</div>
+      <div class="statement-line" id="stmtLine1">SEE FURTHER</div>
+      <div class="statement-line" id="stmtLine2">LOOK AHEAD</div>
+    </div>
+
+    <!-- LAYER 6: SUNGLASSES FLOATING LAYER (OVER STATEMENT COPY) -->
+    <div id="sunglassesContainer" class="sunglasses-layer" aria-hidden="true">
+      <div id="sunglassesWrapper" class="sunglasses-wrapper">
+        <img 
+          src="https://lumitics.net/Sunglasses%203D.png" 
+          alt="Perspective Sunglasses" 
+          id="sunglassesImg" 
+          class="sunglasses-image"
+          loading="eager"
+        />
+      </div>
+    </div>
+
+    <!-- LAYER 7: NATURE STATEMENT SCREEN (SCREEN 3)
+         "BASED ON NATURE / MADE TO FEEL SIMPLE"
+         3D fold-down line-by-line reveal & scroll-driven fade out
+         Same font size as Screen 2, Inter typography -->
+    <div id="natureScreen" class="nature-screen" aria-hidden="true">
+      <div class="nature-line-wrapper">
+        <div class="nature-line" id="natureLine0">BASED ON NATURE</div>
+      </div>
+      <div class="nature-line-wrapper">
+        <div class="nature-line" id="natureLine1">MADE TO FEEL SIMPLE</div>
+      </div>
+    </div>
+
+    <!-- Bottom Scroll Cue & Progress Fill -->
+    <div class="scroll-cue-pill" id="scrollCuePill">
+      <span class="scroll-label" id="scrollLabel">SCROLL TO ADVANCE</span>
+      <div class="scroll-indicator-bar">
+        <div class="scroll-indicator-progress" id="scrollProgress"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ==========================================================================
+       ALL-IN-ONE EMBEDDED JAVASCRIPT & TRACKING ENGINE
+       ========================================================================== -->
+  <script>
+    // ------------------------------------------------------------------------
+    // TRACKING ENGINE & LUMITICS ENGINE INITIALIZATION
+    // ------------------------------------------------------------------------
+    const urlParams = new URLSearchParams(window.location.search);
+    const guestParam = urlParams.get('ref') || urlParams.get('name') || urlParams.get('guest') || urlParams.get('to') || urlParams.get('p');
+    const inviterParam = urlParams.get('inviter') || 'robert';
+    
+    const cleanedGuestName = guestParam ? decodeURIComponent(guestParam).replace(/_/g, ' ') : "Robert";
+
+    window.LumiticsEngine = window.LumiticsEngine || {
+      sessionStartTime: Date.now(),
+      activeTeammate: inviterParam.toLowerCase(),
+      prospectName: cleanedGuestName,
+      selectedCategory: null,
+      affiliatesMap: {}
+    };
+
+    // Update invitee display if element exists
+    const inviteeDisplayEl = document.getElementById('invitee-display-name');
+    if (inviteeDisplayEl) {
+      inviteeDisplayEl.textContent = window.LumiticsEngine.prospectName;
+    }
+
+    // Google Apps Script Tracking & Affiliate Proxy Endpoint
+    const APPS_SCRIPT_PROXY = "https://script.google.com/macros/s/AKfycbzPK0d68rCpJ1jnTd_KZbkTlS7EQggo4Y-4IyAOsdhJOHF1tyUEZYhdKSYGKdMDpsCw/exec";
+
+    // Fetch live affiliate map from Google Apps Script (Affiliates Tab)
+    fetch(`${APPS_SCRIPT_PROXY}?action=affiliates`)
+      .then(res => res.json())
+      .then(data => {
+        window.LumiticsEngine.affiliatesMap = data;
+      })
+      .catch(err => console.error("Could not load affiliate mapping:", err));
+
+    // Dynamic Affiliate Link Resolver
+    window.getAffiliateLink = function(productKey) {
+      const inviterKey = window.LumiticsEngine.activeTeammate.toLowerCase();
+      const map = window.LumiticsEngine.affiliatesMap;
+      
+      let link = "";
+      if (map && map[inviterKey] && map[inviterKey][productKey]) {
+        link = map[inviterKey][productKey];
+      } else if (map && map["robert"] && map["robert"][productKey]) {
+        link = map["robert"][productKey];
+      }
+
+      // Safety check: Ensure it's a valid product store URL
+      if (link && link.length > 25 && link.includes("lifewave.com") && link !== "https://lifewave.com") {
+        return link;
+      }
+      
+      return "https://lifewave.com/rcamey/store/product/39000.022.009";
+    };
+
+    // Window TrackingEngine
+    window.TrackingEngine = {
+      proxyUrl: APPS_SCRIPT_PROXY,
+      getOS() {
+        const ua = navigator.userAgent;
+        if (/android/i.test(ua)) return "Android";
+        if (/iPad|iPhone|iPod/.test(ua) && !window.MSStream) return "iOS";
+        if (/Win/i.test(ua)) return "Windows";
+        if (/Mac/i.test(ua)) return "macOS";
+        if (/Linux/i.test(ua)) return "Linux";
+        return "Unknown OS";
+      },
+      sendEvent(actionName) {
+        try {
+          const payload = {
+            inviter: (window.LumiticsEngine && window.LumiticsEngine.activeTeammate) ? window.LumiticsEngine.activeTeammate : 'robert',
+            guest_name: (window.LumiticsEngine && window.LumiticsEngine.prospectName) ? window.LumiticsEngine.prospectName : 'Guest',
+            action: actionName,
+            page: window.location.pathname || '/',
+            timestamp: new Date().toISOString(),
+            os: this.getOS(),
+            location: (Intl && Intl.DateTimeFormat) ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'UTC'
+          };
+          fetch(this.proxyUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            keepalive: true,
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify(payload)
+          }).catch(() => {});
+        } catch (e) {}
+      }
+    };
+
+    // Fire Initial Access Tracking Event
+    window.TrackingEngine.sendEvent('🔗 Perspective Accessed');
+
+    (() => {
+      'use strict';
+
+      // Explicit font family string for canvas (unified on Inter)
+      const DISPLAY_FONT = '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+
+      // ------------------------------------------------------------------------
+      // 1. SCROLL PROGRESS TRACKER
+      // Total Scroll Runway (650vh)
+      // Phase 1 (0.00 - 0.28): Hero Scene + Black Cloud Rises to Engulf (Hero fades)
+      // Phase 2 (0.28 - 0.46): Screen 2 ("SHIFT YOUR VIEW / SEE FURTHER / LOOK AHEAD")
+      //                        + Floating Sunglasses Fade In Centered Over Copy
+      // Phase 3 (0.46 - 0.57): Screen 2 Copy Fades Out Line-by-Line (Glasses hold 1.0x)
+      // Phase 4 (0.58 - 0.74): Delayed Glasses Zoom (to 3.5x) and Fade Out
+      // Phase 5 (0.74 - 0.87): Screen 3 ("BASED ON NATURE / MADE TO FEEL SIMPLE")
+      //                        3D Fold-Down Line-by-Line Show Animation
+      // Phase 6 (0.87 - 0.91): Screen 3 Reading Hold
+      // Phase 7 (0.91 - 0.98): Screen 3 Fades Out on Continued Scroll
+      // Phase 8 (0.98 - 1.00): Journey Completion
+      // ------------------------------------------------------------------------
+      const cloudSystem = document.getElementById('cloudSystem');
+      const cloudBack = document.getElementById('cloudBack');
+      const cloudMid = document.getElementById('cloudMid');
+      const figureHero = document.getElementById('figureHero');
+      const typographyLayer = document.getElementById('typographyLayer');
+      const backdropLayer = document.getElementById('backdropLayer');
+      const scrollProgress = document.getElementById('scrollProgress');
+      const scrollCuePill = document.getElementById('scrollCuePill');
+      const scrollLabel = document.getElementById('scrollLabel');
+
+      let currentP = 0;
+      let targetP = 0;
+
+      function updateScrollProgress() {
+        const total = document.documentElement.scrollHeight - window.innerHeight;
+        const scrolled = window.pageYOffset || document.documentElement.scrollTop;
+        targetP = Math.min(1, Math.max(0, scrolled / Math.max(1, total)));
+      }
+
+      window.addEventListener('scroll', updateScrollProgress, { passive: true });
+      window.addEventListener('resize', updateScrollProgress, { passive: true });
+
+      // ------------------------------------------------------------------------
+      // 2. STATEMENT SCREEN (SCREEN 2) MONUMENTAL TYPOGRAPHY ENGINE
+      // Lines:
+      // 1. "SHIFT YOUR VIEW"
+      // 2. "SEE FURTHER"
+      // 3. "LOOK AHEAD"
+      // Fades out line-by-line BEFORE glasses zoom begins
+      // ------------------------------------------------------------------------
+      function updateStatementScreen(p) {
+        for (let i = 0; i < 3; i++) {
+          const lineEl = document.getElementById(`stmtLine${i}`);
+          if (!lineEl) continue;
+
+          // Line-by-line show timing (0.26 -> 0.40)
+          const showStart = 0.26 + i * 0.04;
+          const showEnd = showStart + 0.07;
+
+          // Line-by-line hide timing (0.46 -> 0.57) - Copy fades out completely before zoom!
+          const hideStart = 0.46 + i * 0.03;
+          const hideEnd = hideStart + 0.05;
+
+          let lineProgress = 0;
+          if (p < showStart) {
+            lineProgress = 0;
+          } else if (p >= showStart && p < showEnd) {
+            lineProgress = (p - showStart) / (showEnd - showStart);
+          } else if (p >= showEnd && p < hideStart) {
+            lineProgress = 1.0;
+          } else if (p >= hideStart && p < hideEnd) {
+            lineProgress = 1.0 - (p - hideStart) / (hideEnd - hideStart);
+          } else {
+            lineProgress = 0;
+          }
+
+          lineEl.style.opacity = lineProgress.toFixed(3);
+          const yDrift = ((1 - lineProgress) * 12).toFixed(1);
+          lineEl.style.transform = `translate3d(0, ${yDrift}px, 0)`;
+        }
+      }
+
+      // ------------------------------------------------------------------------
+      // 2.5. SUNGLASSES FLOATING & 3D INTERACTION ENGINE
+      // Exact Asset: https://lumitics.net/Sunglasses%203D.png
+      // Features:
+      // - Centered directly over "SEE FURTHER"
+      // - Gentle floating bob (harmonic oscillation)
+      // - Interactive cursor & touch 3D tilt (rotateX, rotateY, rotateZ)
+      // - Smooth fade-in over copy (p: 0.28 -> 0.38)
+      // - Holds scale 1.0x while copy is visible & while copy fades out (p: 0.38 -> 0.58)
+      // - DELAYED ZOOM: Zooms only AFTER copy has faded out (p: 0.58 -> 0.72)
+      // - Smooth fade-out before the next screen appears (p: 0.68 -> 0.74)
+      // ------------------------------------------------------------------------
+      const sunglassesContainer = document.getElementById('sunglassesContainer');
+      const sunglassesWrapper = document.getElementById('sunglassesWrapper');
+
+      // Pointer tilt tracking
+      let targetMouseX = 0, targetMouseY = 0;
+      let currentMouseX = 0, currentMouseY = 0;
+
+      window.addEventListener('pointermove', (e) => {
+        targetMouseX = (e.clientX / window.innerWidth - 0.5) * 2;
+        targetMouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+      }, { passive: true });
+
+      window.addEventListener('touchmove', (e) => {
+        if (e.touches && e.touches.length > 0) {
+          targetMouseX = (e.touches[0].clientX / window.innerWidth - 0.5) * 2;
+          targetMouseY = (e.touches[0].clientY / window.innerHeight - 0.5) * 2;
+        }
+      }, { passive: true });
+
+      function updateSunglasses(p) {
+        if (!sunglassesContainer || !sunglassesWrapper) return;
+
+        // Smooth pointer lag for organic feel
+        currentMouseX += (targetMouseX - currentMouseX) * 0.08;
+        currentMouseY += (targetMouseY - currentMouseY) * 0.08;
+
+        // Before Screen 2, keep container hidden
+        if (p < 0.28) {
+          sunglassesContainer.style.opacity = '0';
+          return;
+        }
+
+        // FADE IN & FADE OUT TIMELINE:
+        // 1. Fade in over Screen 2 center: p in [0.28, 0.38] -> alpha 0 to 1
+        // 2. Hold while Screen 2 copy shows & fades out: p in [0.38, 0.68] -> alpha 1
+        // 3. Fade out as it completes delayed zoom: p in [0.68, 0.74] -> alpha 1 to 0
+        // 4. After p >= 0.74: alpha 0
+        let alpha = 0;
+        if (p >= 0.28 && p < 0.38) {
+          alpha = (p - 0.28) / 0.10;
+        } else if (p >= 0.38 && p < 0.68) {
+          alpha = 1.0;
+        } else if (p >= 0.68 && p <= 0.74) {
+          alpha = 1.0 - ((p - 0.68) / 0.06);
+        } else {
+          alpha = 0;
+        }
+
+        alpha = Math.max(0, Math.min(1, alpha));
+        sunglassesContainer.style.opacity = alpha.toFixed(3);
+
+        if (alpha <= 0.005) return;
+
+        // Organic floating and tilting
+        const time = performance.now() * 0.0016;
+        const floatY = Math.sin(time * 1.5) * 8; // Gentle 8px vertical bob
+        const tiltZ = Math.sin(time * 1.1) * 2.5 + currentMouseX * -4; // Organic roll in degrees
+        const tiltX = Math.cos(time * 1.3) * 3.0 + currentMouseY * -14; // Pitch in degrees
+        const tiltY = Math.sin(time * 0.9) * 3.5 + currentMouseX * 16; // Yaw in degrees
+
+        // DELAYED GLASSES ZOOM:
+        // "Have the copy fade out when the user scrolls, delay the glasses zoom until the copy is faded."
+        // Copy fades out completely by p = 0.57.
+        // The zoom is strictly delayed until p >= 0.58!
+        let zoomMult = 1.0;
+        let zoomZ = 0;
+
+        if (p > 0.58) {
+          const isMobile = window.innerWidth < 640;
+          const zoomNorm = Math.min(1, (p - 0.58) / 0.14); // 0.58 to 0.72
+          const easedZoom = Math.pow(zoomNorm, 1.4);
+          const maxZoom = isMobile ? 2.5 : 3.5; // Zooms up to 3.5x filling the screen
+          zoomMult = 1.0 + easedZoom * (maxZoom - 1.0);
+          zoomZ = easedZoom * 160;
+        }
+
+        sunglassesWrapper.style.transform = `translate3d(0, ${floatY.toFixed(1)}px, ${zoomZ.toFixed(1)}px) rotateX(${tiltX.toFixed(2)}deg) rotateY(${tiltY.toFixed(2)}deg) rotateZ(${tiltZ.toFixed(2)}deg) scale(${zoomMult.toFixed(3)})`;
+      }
+
+      // ------------------------------------------------------------------------
+      // 2.7. NATURE STATEMENT SCREEN (SCREEN 3) ENGINE
+      // "BASED ON NATURE / MADE TO FEEL SIMPLE"
+      // 3D Fold-Down Line-by-Line Reveal & Scroll-Driven Fade Out
+      // ------------------------------------------------------------------------
+      const natureScreen = document.getElementById('natureScreen');
+      const natureLine0 = document.getElementById('natureLine0');
+      const natureLine1 = document.getElementById('natureLine1');
+
+      function updateNatureScreen(p) {
+        if (!natureScreen || !natureLine0 || !natureLine1) return;
+
+        if (p < 0.72) {
+          natureScreen.style.opacity = '0';
+          return;
+        }
+
+        natureScreen.style.opacity = '1';
+
+        // 3D Fold-down line-by-line show animation:
+        // Line 0 ("BASED ON NATURE"): fold in 0.74 -> 0.82
+        // Line 1 ("MADE TO FEEL SIMPLE"): fold in 0.79 -> 0.87
+        // Reading hold: 0.87 -> 0.91
+        // Fade out on scroll: 0.91 -> 0.98
+
+        const lineConfigs = [
+          { el: natureLine0, start: 0.74, end: 0.82 },
+          { el: natureLine1, start: 0.79, end: 0.87 }
+        ];
+
+        lineConfigs.forEach((cfg) => {
+          let foldProgress = 0;
+          if (p < cfg.start) {
+            foldProgress = 0;
+          } else if (p >= cfg.start && p < cfg.end) {
+            foldProgress = (p - cfg.start) / (cfg.end - cfg.start);
+          } else {
+            foldProgress = 1.0;
+          }
+
+          // Smooth 3D fold-down mechanical easing
+          const eased = Math.sin((foldProgress * Math.PI) / 2);
+          const rotX = (-85 * (1 - eased)).toFixed(2);
+          let alpha = Math.min(1, foldProgress * 1.4);
+
+          // Scroll-driven fade out (0.91 -> 0.98)
+          let yOffset = 0;
+          if (p >= 0.91) {
+            const fadeProg = Math.min(1, (p - 0.91) / 0.07);
+            alpha = Math.max(0, 1.0 - fadeProg);
+            yOffset = (-fadeProg * 16).toFixed(1);
+          }
+
+          cfg.el.style.opacity = alpha.toFixed(3);
+          cfg.el.style.transform = `translate3d(0, ${yOffset}px, 0) rotateX(${rotX}deg)`;
+        });
+      }
+
+      // ------------------------------------------------------------------------
+      // 3. MAIN ANIMATION & CLOUD ENGULF LOOP
+      // ------------------------------------------------------------------------
+      const trackedMilestones = {
+        cloudEngulfed: false,
+        statementViewed: false,
+        sunglassesZoomed: false,
+        natureViewed: false,
+        journeyCompleted: false
+      };
+
+      function renderLoop() {
+        currentP += (targetP - currentP) * 0.1;
+        const p = currentP;
+
+        // 1. Black Cloud Engulf Animation (Phase: 0.00 -> 0.28)
+        if (cloudSystem) {
+          let cloudNorm = Math.min(1, p / 0.28);
+          let cloudY = (1 - cloudNorm) * 110 - 2;
+          cloudSystem.style.transform = `translate3d(0, ${cloudY}%, 0)`;
+        }
+
+        if (cloudBack) cloudBack.style.transform = `translate3d(0, ${(1 - Math.min(1, p / 0.28)) * -18}px, 0)`;
+        if (cloudMid) cloudMid.style.transform = `translate3d(0, ${(1 - Math.min(1, p / 0.28)) * -10}px, 0)`;
+
+        // 2. DISAPPEARANCE OF HERO IMAGE & MARQUEE COPY ON ENGULF
+        if (p >= 0.28) {
+          if (figureHero) figureHero.style.opacity = '0';
+          if (typographyLayer) typographyLayer.style.opacity = '0';
+          if (backdropLayer) backdropLayer.style.opacity = '0';
+        } else {
+          const heroOpacity = Math.max(0, 1 - (p / 0.26));
+          if (figureHero) figureHero.style.opacity = heroOpacity;
+          if (typographyLayer) typographyLayer.style.opacity = heroOpacity;
+          if (backdropLayer) backdropLayer.style.opacity = heroOpacity;
+        }
+
+        // 3. Update Monumental Screen-Filling Statement Lines (Screen 2)
+        updateStatementScreen(p);
+
+        // 3.5. Update Floating & 3D Interactive Sunglasses
+        updateSunglasses(p);
+
+        // 3.7. Update Nature Statement Screen (Screen 3)
+        updateNatureScreen(p);
+
+        // 4. Update Scroll Bar & Progress Label
+        if (scrollProgress) {
+          scrollProgress.style.width = `${Math.round(p * 100)}%`;
+        }
+
+        if (scrollLabel) {
+          if (p < 0.28) {
+            scrollLabel.textContent = 'SCROLL TO DISSOLVE';
+          } else if (p < 0.58) {
+            scrollLabel.textContent = 'SHIFT YOUR VIEW';
+          } else if (p < 0.74) {
+            scrollLabel.textContent = 'SEE BEYOND';
+          } else if (p < 0.94) {
+            scrollLabel.textContent = 'BASED ON NATURE';
+          } else {
+            scrollLabel.textContent = 'SCROLL TO COMPLETE';
+          }
+        }
+
+        if (scrollCuePill) {
+          scrollCuePill.style.opacity = p > 0.97 ? Math.max(0, (1 - p) * 33) : '1';
+        }
+
+        // 5. Scroll Milestone Analytics
+        if (!trackedMilestones.cloudEngulfed && p >= 0.28) {
+          trackedMilestones.cloudEngulfed = true;
+          window.TrackingEngine.sendEvent('☁️ Hero Engulfed by Cloud');
+        }
+        if (!trackedMilestones.statementViewed && p >= 0.40) {
+          trackedMilestones.statementViewed = true;
+          window.TrackingEngine.sendEvent('👁️ Statement Viewed: Shift Your View');
+        }
+        if (!trackedMilestones.sunglassesZoomed && p >= 0.65) {
+          trackedMilestones.sunglassesZoomed = true;
+          window.TrackingEngine.sendEvent('🕶️ Sunglasses Zoomed');
+        }
+        if (!trackedMilestones.natureViewed && p >= 0.82) {
+          trackedMilestones.natureViewed = true;
+          window.TrackingEngine.sendEvent('🌿 Statement Viewed: Based on Nature');
+        }
+        if (!trackedMilestones.journeyCompleted && p >= 0.97) {
+          trackedMilestones.journeyCompleted = true;
+          window.TrackingEngine.sendEvent('🏁 Perspective Completed');
+        }
+
+        requestAnimationFrame(renderLoop);
+      }
+      requestAnimationFrame(renderLoop);
+
+      // ------------------------------------------------------------------------
+      // 4. STARDUST CANVAS PARTICLES
+      // ------------------------------------------------------------------------
+      const canvas = document.getElementById('ambientCanvas');
+      const ctx = canvas ? canvas.getContext('2d') : null;
+      let particles = [];
+
+      function resizeCanvas() {
+        if (!canvas || !ctx) return;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = window.innerWidth * dpr;
+        canvas.height = window.innerHeight * dpr;
+        ctx.scale(dpr, dpr);
+      }
+
+      class StarDust {
+        constructor() { this.reset(true); }
+        reset(initial = false) {
+          this.x = Math.random() * window.innerWidth;
+          this.y = initial ? Math.random() * window.innerHeight : window.innerHeight + 10;
+          this.size = Math.random() * 1.5 + 0.4;
+          this.baseAlpha = Math.random() * 0.35 + 0.1;
+          this.alpha = this.baseAlpha;
+          this.vy = -(Math.random() * 0.18 + 0.05);
+          this.vx = (Math.random() - 0.5) * 0.1;
+          this.pulse = Math.random() * Math.PI * 2;
+        }
+        update() {
+          this.y += this.vy;
+          this.x += this.vx;
+          this.pulse += 0.015;
+          this.alpha = this.baseAlpha + Math.sin(this.pulse) * 0.1;
+          if (this.y < -10 || this.x < -10 || this.x > window.innerWidth + 10) this.reset();
+        }
+        draw(c) {
+          c.beginPath();
+          c.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+          c.fillStyle = `rgba(255, 255, 255, ${Math.max(0, this.alpha)})`;
+          c.fill();
+        }
+      }
+
+      if (canvas) {
+        resizeCanvas();
+        for (let i = 0; i < 45; i++) particles.push(new StarDust());
+        function animDust() {
+          ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+          for (let p of particles) { p.update(); p.draw(ctx); }
+          requestAnimationFrame(animDust);
+        }
+        requestAnimationFrame(animDust);
+        window.addEventListener('resize', resizeCanvas, { passive: true });
+      }
+
+      // ------------------------------------------------------------------------
+      // 5. SOUNDTRACK AUDIO ENGINE (https://lumitics.net/Web%20app%20audio.mp3)
+      // ------------------------------------------------------------------------
+      const AudioManager = {
+        bgm: null,
+        isAudioEnabled: false,
+        init() {
+          if (this.bgm) return;
+          this.bgm = new Audio('https://lumitics.net/Web%20app%20audio.mp3');
+          this.bgm.loop = true;
+          this.bgm.volume = 0.45;
+          this.bgm.preload = 'auto';
+
+          this.bgm.addEventListener('ended', () => {
+            if (this.isAudioEnabled) {
+              this.bgm.currentTime = 0;
+              this.bgm.play().catch(() => {});
+            }
+          });
+        },
+        toggleAudio() {
+          if (!this.bgm) this.init();
+          this.isAudioEnabled = !this.isAudioEnabled;
+          if (this.isAudioEnabled) {
+            this.bgm.play().then(() => {
+              this.updateWidgetUI(true);
+              window.TrackingEngine?.sendEvent('🔊 Music: On');
+            }).catch(e => {
+              console.log('Audio playback requires user gesture:', e);
+            });
+          } else {
+            this.bgm.pause();
+            this.updateWidgetUI(false);
+            window.TrackingEngine?.sendEvent('🔇 Music: Off');
+          }
+        },
+        updateWidgetUI(enabled) {
+          const icon = document.getElementById('audio-widget-icon');
+          const text = document.getElementById('audio-widget-text');
+          if (enabled) {
+            if (icon) icon.innerHTML = '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>';
+            if (text) text.textContent = "Music: On";
+          } else {
+            if (icon) icon.innerHTML = '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line>';
+            if (text) text.textContent = "Music: Off";
+          }
+        }
+      };
+
+      const audioControlWidget = document.getElementById('audio-control-widget');
+      if (audioControlWidget) {
+        audioControlWidget.addEventListener('click', () => AudioManager.toggleAudio());
+        audioControlWidget.addEventListener('keydown', (e) => {
+          if (e.code === 'Enter' || e.code === 'Space') {
+            e.preventDefault();
+            AudioManager.toggleAudio();
+          }
+        });
+      }
+      AudioManager.init();
+
+      window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && (e.target === document.body || e.target === document.documentElement)) {
+          e.preventDefault();
+          AudioManager.toggleAudio();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
